@@ -11,7 +11,7 @@ pipeline {
         choice(name: 'deployToTest', choices: 'no\nyes', description: 'Deploy to Test Environment')
         choice(name: 'deployToStage', choices: 'no\nyes', description: 'Deploy to Stage Environment')
         choice(name: 'deployToProd', choices: 'no\nyes', description: 'Deploy to Prod Environment')
-        choice(name: 'skipScans', choice: 'no\yes', description: 'Skip Sonarscan and quality gate')
+        choice(name: 'skipScans', choices: 'no\yes', description: 'Skip Sonarscan and quality gate')
     }
     environment {
         // Currently i am using docker hub registry
