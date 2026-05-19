@@ -153,5 +153,59 @@ pipeline {
                 }
             }
         }
+        stage ('DeployToTestEnvironment'){
+            when {
+                expression {
+                    return params.BUILD && params.TARGET_ENV == 'test'
+                }
+            }
+            steps {
+                script {
+                    gkeAuth(env.TEST_CLUSTER_NAME, env.TEST_CLUSTER_ZONE, env.TEST_PROJECT_ID)
+                    deployToEnv('i27-helpdesk-test', 'Test')
+                }
+            }
+        }
+        stage ('DeployToStageEnvironment'){
+            when {
+                allOf {
+                    expression { return params.BUILD && params.TARGET_ENV == 'stage' }
+                    anyOf {
+                        branch 'release*'
+                        tag pattern: "v\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}", comparator: "REGEXP"
+                    }
+                }
+
+            }
+            steps {
+                script {
+                    gkeAuth(env.STAGE_CLUSTER_NAME, env.STAGE_CLUSTER_ZONE, env.STAGE_PROJECT_ID)
+                    deployToEnv('i27-helpdesk-stage', 'Stage')
+                }
+            }
+        }
+        stage ('DeployToProdEnvironment'){
+            when {
+                allOf {
+                    expression {return params.BUILD && params.TARGET_ENV == 'prod'}
+                    // v1.2.3
+                    //v.1.2.3
+                    anyOf {
+                        //v1.2.3
+                        tag pattern: "v\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}", comparator: "REGEXP"
+                    }
+                }
+
+            }
+            steps {
+                timeout(time: 300, unit: 'SECONDS') {
+                    input message: 'Approve Deployment to production ???', submitter: 'sivasre,phanisekhar'
+                }
+                script {
+                    gkeAuth(env.PROD_CLUSTER_NAME, env.PROD_CLUSTER_ZONE, env.PROD_PROJECT_ID)
+                    deployToEnv('i27-helpdesk-prod', 'Prod')
+                }
+            }
+        }
     }
 }
