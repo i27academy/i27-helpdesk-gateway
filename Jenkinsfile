@@ -28,13 +28,14 @@ pipeline {
         label 'k8s-slave'
     }
     parameters {
+        booleanParam(name: 'skipSonar', defaultValue: true, description: 'Skip SonarQube analysis and Quality gate')
         choice(name: 'buildOnly', choices: 'no\nyes', description: 'Build Docker image only, no push')
         choice(name: 'dockerPush', choices: 'no\nyes', description: 'Build and Push Docker image')
         choice(name: 'deployToDev', choices: 'no\nyes', description: 'Deploy to Dev Environment')
         choice(name: 'deployToTest', choices: 'no\nyes', description: 'Deploy to Test Environment')
         choice(name: 'deployToStage', choices: 'no\nyes', description: 'Deploy to Stage Environment')
         choice(name: 'deployToProd', choices: 'no\nyes', description: 'Deploy to Prod Environment')
-        choice(name: 'skipScans', choices: 'no\nyes', description: 'Skip Sonarscan and quality gate')
+        //choice(name: 'skipScans', choices: 'no\nyes', description: 'Skip Sonarscan and quality gate')
     }
     environment {
         // Currently i am using docker hub registry
@@ -94,7 +95,7 @@ pipeline {
         stage ('Sonarqube') {
             when {
                 allOf {
-                    expression { params.skipScans == 'no' }
+                    expression { !params.skipSonar }
                     anyOf {
                         expression { params.buildOnly == 'yes' }
                         expression { params.dockerPush == 'yes' }
