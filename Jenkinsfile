@@ -162,7 +162,7 @@ pipeline {
             steps {
                 script {
                     gkeAuth(env.TEST_CLUSTER_NAME, env.TEST_CLUSTER_ZONE, env.TEST_PROJECT_ID)
-                    deployToEnv('i27-helpdesk-test', 'Test')
+                    deployToGKE('i27-helpdesk-test', 'Test')
                 }
             }
         }
@@ -180,7 +180,7 @@ pipeline {
             steps {
                 script {
                     gkeAuth(env.STAGE_CLUSTER_NAME, env.STAGE_CLUSTER_ZONE, env.STAGE_PROJECT_ID)
-                    deployToEnv('i27-helpdesk-stage', 'Stage')
+                    deployToGKE('i27-helpdesk-stage', 'Stage')
                 }
             }
         }
@@ -205,7 +205,7 @@ pipeline {
                 }
                 script {
                     gkeAuth(env.PROD_CLUSTER_NAME, env.PROD_CLUSTER_ZONE, env.PROD_PROJECT_ID)
-                    deployToEnv('i27-helpdesk-prod', 'Prod')
+                    deployToGKE('i27-helpdesk-prod', 'Prod')
                 }
             }
         }
