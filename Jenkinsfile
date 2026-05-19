@@ -1,10 +1,33 @@
+def deployToGKE(String namespace, String envLabel) {
+    env.NAMESPACE = namespace
+    sh """
+        echo "******************* Deploying to ${envLabel} Environment *********************"
+        echo "Deploying into this namespace: ${NAMESPACE}"
+        kubectl get pods -n ${NAMESPACE}
+        # Substitute variables in kubernetes manifests
+        sed -i "s|\\\${NAMESPACE}|${NAMESPACE}|g" k8s/*.yaml
+        sed -i "s|\\\${IMAGE_NAME}|${IMAGE_NAME}|g" k8s/deploy.yaml
+        sed -i "s|\\\${IMAGE_TAG}|${GIT_COMMIT}|g" k8s/deploy.yaml
+        echo "Applying k8s manifests in ${envLabel} namespace"
+        kubectl apply -f k8s/
+        echo "Deployment to ${envLabel} namespace is completed"
+    """
+
+}
+def gkeAuth(String clusterName, String zone, String projectId){
+    sh """
+        echo "******************************* Authenticating to GKE **************************"
+        gcloud container clusters get-credentials ${clusterName} --zone ${zone} --project ${projectId}
+        echo "******************** Validating the Cluster access *********************"
+        kubectl get nodes
+    """
+}
 pipeline {
     agent {
         // label 'my-slave'
         label 'k8s-slave'
     }
     parameters {
-        choice(name: 'scanOnly', choices: 'no\nyes', description: 'Run Sonarqube scans only')
         choice(name: 'buildOnly', choices: 'no\nyes', description: 'Build Docker image only, no push')
         choice(name: 'dockerPush', choices: 'no\nyes', description: 'Build and Push Docker image')
         choice(name: 'deployToDev', choices: 'no\nyes', description: 'Deploy to Dev Environment')
@@ -20,9 +43,6 @@ pipeline {
         IMAGE_REPOSITORY = "devopswithcloudhub/i27-helpdesk-gateway"
         // calling my docker creds into a variable
         REGISTRY_CREDENTIALS_ID = credentials('docker-credentials')
-
-        // docker.io/devopswithcloudhub/i27-helpdesk-ui:tagname
-        // docker.io/devopswithcloudhub/i27-helpdesk-ui:84285da
 
         // Kubernetes Dev Cluster Details 
         DEV_CLUSTER_NAME = "np-cluster"
@@ -74,18 +94,11 @@ pipeline {
         stage ('Sonarqube') {
             when {
                 allOf {
-                    expression { params.skipScans == 'no'}
+                    expression { params.skipScans == 'no' }
                     anyOf {
-                        expression { params.scanOnly == 'yes'}
-                        expression { params.buildOnly == 'yes'}
-                        expression { params.dockerPush == 'yes'}
+                        expression { params.buildOnly == 'yes' }
+                        expression { params.dockerPush == 'yes' }
                     }
-                }
-                expression { params.skipScans == 'no'}
-                anyOf {
-                    expression { params.scanOnly == 'yes'}
-                    expression { params.buildOnly == 'yes'}
-                    expression { params.dockerPush == 'yes'}
                 }
             }
             steps {
@@ -121,6 +134,22 @@ pipeline {
                 sh "docker login -u ${env.REGISTRY_CREDENTIALS_ID_USR} -p ${env.REGISTRY_CREDENTIALS_ID_PSW} ${env.REGISTRY_URL}"
                 echo "********************************* Docker Push *****************************"
                 sh "docker push ${env.IMAGE_NAME}:${GIT_COMMIT}"
+            }
+        }
+        stage ('DeployToDevEnvironment'){
+            when {
+                expression {
+                    params.deployToDev == 'yes'
+                }
+            }
+            steps {
+                script {
+                    // Calling Auth method
+                    // String clusterName, String zone, String projectId
+                    gkeAuth(env.DEV_CLUSTER_NAME, env.DEV_CLUSTER_ZONE, env.DEV_PROJECT_ID)
+                    // Calling deployToEnv method
+                    deployToGKE('i27-helpdesk-dev', 'Dev')
+                }
             }
         }
     }

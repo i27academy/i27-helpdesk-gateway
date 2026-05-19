@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: i27-helpdesk-gateway-cm
+  namespace: ${NAMESPACE}
+data:
+  SERVER_PORT: "8080"
+  UI_ORIGIN: "34.86.232.187:32320"
+  AUTH_SERVICE_URL: "34.86.232.187:8081"
+  TICKET_SERVICE_URL: "http://35.188.183.52:8082"
+  COMMENT_SERVICE_URL: "http://35.188.183.52:8083"
+  ATTACHMENT_SERVICE_URL: "http://localhost:8085"
+
+
+# http://34.86.232.187:32320/
